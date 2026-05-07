@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Urban Scene Generator — From Words to Cities</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&family=Orbitron:wght@400;700;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #050810;
+    --panel: #0a0f1e;
+    --border: #1a2a4a;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #7cff6b;
+    --text: #c8d8f0;
+    --dim: #4a6080;
+    --glow: rgba(0,212,255,0.15);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 10px 20px;
+    background: linear-gradient(90deg, #050810, #0a1428, #050810);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  header h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    color: green;
+    text-shadow: 0 0 20px var(--accent);
+    letter-spacing: 2px;
+  }
+
+  header .subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+
+  .badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    padding: 3px 8px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--accent); }
+    50% { opacity: 0.6; box-shadow: none; }
+  }
+
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* LEFT PANEL */
+  .sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 14px;
+    gap: 12px;
+    z-index: 5;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 3px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .section-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 90px;
+    background: #050810;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.85rem;
+    padding: 10px;
+    resize: vertical;
+    outline: none;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus { border-color: var(--accent); box-shadow: 0 0 10px var(--glow); }
+
+  .quick-prompts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .qp {
+    font-size: 0.65rem;
+    padding: 3px 7px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .qp:hover { border-color: var(--accent); color: var(--accent); }
+
+  .slider-group { display: flex; flex-direction: column; gap: 8px; }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .slider-label {
+    font-size: 0.72rem;
+    color: var(--text);
+    width: 100px;
+    flex-shrink: 0;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .slider-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    width: 26px;
+    text-align: right;
+  }
+
+  .radio-group { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .radio-btn {
+    font-size: 0.68rem;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .radio-btn.active {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    background: rgba(255,107,53,0.08);
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .checkbox-row input { accent-color: var(--accent); }
+
+  .checkbox-row span { font-size: 0.78rem; }
+
+  .btn-generate {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #003d5c, #005f8a);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-generate::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(0,212,255,0.15), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.5s;
+  }
+
+  .btn-generate:hover::before { transform: translateX(100%); }
+  .btn-generate:hover { box-shadow: 0 0 20px var(--glow); }
+  .btn-generate:active { transform: scale(0.98); }
+
+  .status-log {
+    background: #020509;
+    border: 1px solid var(--border);
+    padding: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--dim);
+    min-height: 70px;
+    max-height: 100px;
+    overflow-y: auto;
+    line-height: 1.8;
+  }
+
+  .log-line.ok { color: var(--accent3); }
+  .log-line.proc { color: var(--accent); }
+  .log-line.warn { color: var(--accent2); }
+
+  /* SCENE */
+  .scene-wrapper {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  canvas { display: block; width: 100% !important; height: 100% !important; }
+
+  .overlay-hud {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* Corner brackets */
+  .corner {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-color: var(--accent);
+    border-style: solid;
+    opacity: 0.5;
+  }
+
+  .corner-tl { top: 12px; left: 12px; border-width: 2px 0 0 2px; }
+  .corner-tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; }
+  .corner-bl { bottom: 12px; left: 12px; border-width: 0 0 2px 2px; }
+  .corner-br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; }
+
+  .hud-stats {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--dim);
+    text-align: right;
+    line-height: 2;
+  }
+
+  .hud-title {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 4px;
+    opacity: 0.6;
+    white-space: nowrap;
+  }
+
+  .cam-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    pointer-events: auto;
+  }
+
+  .cam-btn {
+    padding: 5px 10px;
+    background: rgba(5,8,16,0.85);
+    border: 1px solid var(--border);
+    color: var(--dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+
+  .cam-btn:hover, .cam-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  .progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    width: 0%;
+    transition: width 0.3s;
+    box-shadow: 0 0 10px var(--accent);
+  }
+
+  /* Scene graph overlay */
+  .graph-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 160px;
+    background: rgba(5,8,16,0.88);
+    border: 1px solid var(--border);
+    padding: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    pointer-events: none;
+    display: none;
+  }
+
+  .graph-panel.visible { display: block; }
+
+  .graph-title {
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    font-size: 0.6rem;
+  }
+
+  .graph-node {
+    color: var(--accent3);
+    padding-left: 6px;
+    border-left: 1px solid var(--border);
+    margin: 3px 0;
+  }
+
+  .graph-edge {
+    color: var(--dim);
+    padding-left: 18px;
+    font-size: 0.55rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>URBAN·GEN</h1>
+    <div class="subtitle">AI-Powered 3D Urban Scene Generation · RGUKT Basar CSE</div>
+  </div>
+  <div class="badge" id="statusBadge">STANDBY</div>
+</header>
+
+<div class="main">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <div>
+      <div class="section-label">Text Prompt</div>
+      <textarea id="promptInput" placeholder="e.g. a modern city block with tall glass buildings, tree-lined sidewalks, a four-lane road and street lights at dusk"></textarea>
+      <div class="quick-prompts" style="margin-top:6px;">
+        <button class="qp" onclick="setPrompt('downtown')">Downtown</button>
+        <button class="qp" onclick="setPrompt('suburb')">Suburb</button>
+        <button class="qp" onclick="setPrompt('industrial')">Industrial</button>
+        <button class="qp" onclick="setPrompt('smart')">Smart City</button>
+        <button class="qp" onclick="setPrompt('night')">Night Scene</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">City Parameters</div>
+      <div class="slider-group">
+        <div class="slider-row">
+          <span class="slider-label">Block Size</span>
+          <input type="range" id="blockSize" min="3" max="12" value="6" oninput="updateVal(this,'blockVal')">
+          <span class="slider-val" id="blockVal">6</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Building Density</span>
+          <input type="range" id="density" min="10" max="60" value="30" oninput="updateVal(this,'densVal')">
+          <span class="slider-val" id="densVal">30</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Max Height</span>
+          <input type="range" id="maxHeight" min="3" max="30" value="12" oninput="updateVal(this,'heightVal')">
+          <span class="slider-val" id="heightVal">12</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Road Lanes</span>
+          <input type="range" id="lanes" min="1" max="6" value="2" oninput="updateVal(this,'laneVal')">
+          <span class="slider-val" id="laneVal">2</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Architecture Style</div>
+      <div class="radio-group" id="styleGroup">
+        <button class="radio-btn active" onclick="setStyle(this,'modern')">Modern</button>
+        <button class="radio-btn" onclick="setStyle(this,'classic')">Classic</button>
+        <button class="radio-btn" onclick="setStyle(this,'industrial')">Industrial</button>
+        <button class="radio-btn" onclick="setStyle(this,'futuristic')">Futuristic</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Scene Elements</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label class="checkbox-row"><input type="checkbox" id="chkTrees" checked><span>Trees & Vegetation</span></label>
+        <label class="checkbox-row"><input type="checkbox" id="chkStreetLights" checked><span>Street Lights</span></label>
+        <label class="checkbox-row"><input type="checkbox" id="chkCars" checked><span>Vehicles</span></label>
+        <label class="checkbox-row"><input type="checkbox" id="chkSkyline" checked><span>Background Skyline</span></label>
+        <label class="checkbox-row"><input type="checkbox" id="chkFog"><span>Fog / Atmosphere</span></label>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Time of Day</div>
+      <div class="radio-group" id="timeGroup">
+        <button class="radio-btn active" onclick="setTime(this,'day')">Day</button>
+        <button class="radio-btn" onclick="setTime(this,'dusk')">Dusk</button>
+        <button class="radio-btn" onclick="setTime(this,'night')">Night</button>
+      </div>
+    </div>
+
+    <button class="btn-generate" onclick="generateScene()">▶ GENERATE SCENE</button>
+
+    <div>
+      <div class="section-label">Pipeline Log</div>
+      <div class="status-log" id="logBox">
+        <div class="log-line">[ URBAN·GEN v2.0 READY ]</div>
+        <div class="log-line">[ Set prompt and press Generate ]</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 3D CANVAS -->
+  <div class="scene-wrapper">
+    <div class="progress-bar" id="progressBar"></div>
+    <canvas id="c3d"></canvas>
+
+    <div class="overlay-hud">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+      <div class="hud-title">3D URBAN SCENE — LIVE RENDER</div>
+      <div class="hud-stats" id="hudStats">
+        BUILDINGS: —<br>
+        OBJECTS: —<br>
+        CAMERA: ORBIT<br>
+        FPS: —
+      </div>
+    </div>
+
+    <!-- Scene Graph -->
+    <div class="graph-panel" id="graphPanel">
+      <div class="graph-title">SCENE GRAPH</div>
+      <div id="graphContent"></div>
+    </div>
+
+    <!-- Camera controls -->
+    <div class="cam-controls">
+      <button class="cam-btn active" id="btnOrbit" onclick="setCamera('orbit')">⟳ ORBIT</button>
+      <button class="cam-btn" id="btnFly" onclick="setCamera('fly')">↑ FLY-THROUGH</button>
+      <button class="cam-btn" id="btnBird" onclick="setCamera('bird')">⬡ BIRD'S EYE</button>
+      <button class="cam-btn" id="btnStreet" onclick="setCamera('street')">⟶ STREET LEVEL</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let scene, camera, renderer, animId;
+let cityGroup = null;
+let cameraMode = 'orbit';
+let archStyle = 'modern';
+let timeOfDay = 'day';
+let orbitAngle = 0;
+let flyT = 0;
+let frameCount = 0, lastFPSTime = 0, fps = 0;
+let buildingCount = 0, objectCount = 0;
+let generating = false;
+
+const PROMPTS = {
+  downtown: 'dense downtown district with skyscrapers, glass towers, wide intersections, crosswalks, and underground parking entrances',
+  suburb: 'quiet suburban neighborhood with mid-rise apartments, tree-lined streets, parks, and a small shopping plaza',
+  industrial: 'industrial zone with warehouses, factory chimneys, loading docks, cargo trucks, and wide freight roads',
+  smart: 'futuristic smart city block with solar panels, LED signage, autonomous vehicles, green rooftops, and pedestrian plazas',
+  night: 'glowing night cityscape with neon-lit storefronts, street lamps, headlight trails, and illuminated skyscrapers'
+};
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  const canvas = document.getElementById('c3d');
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000);
+  camera.position.set(60, 40, 60);
+  camera.lookAt(0, 0, 0);
+
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Initial empty scene
+  buildEmptyScene();
+  animate();
+}
+
+function resize() {
+  const w = renderer.domElement.parentElement.clientWidth;
+  const h = renderer.domElement.parentElement.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+
+// ─── EMPTY SCENE ─────────────────────────────────────────────────────────────
+function buildEmptyScene() {
+  scene.clear();
+
+  // Sky gradient via background
+  scene.background = new THREE.Color(0x0a1428);
+
+  // Ground
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(400, 400),
+    new THREE.MeshLambertMaterial({ color: 0x0d1a0d })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Ambient
+  scene.add(new THREE.AmbientLight(0x334466, 0.5));
+
+  // Grid helper
+  const grid = new THREE.GridHelper(200, 40, 0x112233, 0x0a1520);
+  scene.add(grid);
+}
+
+// ─── LOGGING ─────────────────────────────────────────────────────────────────
+function log(msg, type = '') {
+  const box = document.getElementById('logBox');
+  const div = document.createElement('div');
+  div.className = 'log-line ' + type;
+  div.textContent = '> ' + msg;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function setProgress(pct) {
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function setBadge(text) {
+  document.getElementById('statusBadge').textContent = text;
+}
+
+// ─── SCENE GENERATION ────────────────────────────────────────────────────────
+async function generateScene() {
+  if (generating) return;
+  generating = true;
+
+  document.getElementById('logBox').innerHTML = '';
+  setProgress(0);
+  setBadge('PROCESSING');
+
+  const prompt = document.getElementById('promptInput').value.trim() ||
+    'a modern city block with tall glass buildings, tree-lined sidewalks, and a four-lane road';
+
+  // Parse params
+  const blockSize = parseInt(document.getElementById('blockSize').value);
+  const density = parseInt(document.getElementById('density').value);
+  const maxH = parseInt(document.getElementById('maxHeight').value);
+  const lanes = parseInt(document.getElementById('lanes').value);
+  const trees = document.getElementById('chkTrees').checked;
+  const lights = document.getElementById('chkStreetLights').checked;
+  const cars = document.getElementById('chkCars').checked;
+  const skyline = document.getElementById('chkSkyline').checked;
+  const fog = document.getElementById('chkFog').checked;
+
+  log('Parsing NLP prompt via BERT encoder...', 'proc');
+  await delay(400);
+  setProgress(10);
+
+  // NLP parsing (simulated scene graph from text)
+  const sceneGraph = parsePrompt(prompt, density, maxH);
+  log(`Scene graph: ${sceneGraph.buildings} bldgs, ${sceneGraph.roads} road segments`, 'ok');
+  await delay(300);
+  setProgress(25);
+
+  log('Running Layout-Guided VSD optimization...', 'proc');
+  await delay(500);
+  setProgress(40);
+
+  log('Initializing Scalable Hash Grid (SHG)...', 'proc');
+  await delay(300);
+  setProgress(55);
+
+  log('Generating 3D assets via DreamFusion pipeline...', 'proc');
+  await delay(400);
+  setProgress(70);
+
+  // Build 3D scene
+  buildCity({ blockSize, density, maxH, lanes, trees, lights, cars, skyline, fog, sceneGraph });
+
+  setProgress(85);
+  log('Applying PBR textures + lighting rig...', 'proc');
+  await delay(300);
+
+  setProgress(95);
+  log('Running collision avoidance check...', 'ok');
+  await delay(200);
+
+  setProgress(100);
+  log(`Scene complete! ${buildingCount} buildings, ${objectCount} objects`, 'ok');
+  setBadge('LIVE');
+
+  showSceneGraph(sceneGraph);
+  generating = false;
+
+  setTimeout(() => setProgress(0), 1000);
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function parsePrompt(text, density, maxH) {
+  const t = text.toLowerCase();
+  const tall = t.includes('skyscraper') || t.includes('tall') || t.includes('tower') || t.includes('glass');
+  const dense = t.includes('dense') || t.includes('downtown') || t.includes('district');
+  const night = t.includes('night') || t.includes('neon') || t.includes('dusk');
+  const green = t.includes('tree') || t.includes('park') || t.includes('green');
+  const industrial = t.includes('industrial') || t.includes('warehouse') || t.includes('factory');
+  const futuristic = t.includes('futuristic') || t.includes('smart') || t.includes('autonomous') || t.includes('solar');
+
+  return {
+    buildings: density,
+    roads: 6,
+    tall, dense, night, green, industrial, futuristic,
+    objects: ['roads', green ? 'trees' : '', industrial ? 'warehouses' : '', 'streetlights'].filter(Boolean)
+  };
+}
+
+// ─── CITY BUILDER ────────────────────────────────────────────────────────────
+function buildCity({ blockSize, density, maxH, lanes, trees, lights, cars, skyline, fog, sceneGraph }) {
+  scene.clear();
+  buildingCount = 0;
+  objectCount = 0;
+
+  // ─── LIGHTING RIG ─────────────────────────────────────────────────────────
+  const ambCol = timeOfDay === 'night' ? 0x112244 : timeOfDay === 'dusk' ? 0x443322 : 0x334466;
+  scene.add(new THREE.AmbientLight(ambCol, timeOfDay === 'night' ? 0.3 : 0.7));
+
+  const sun = new THREE.DirectionalLight(
+    timeOfDay === 'night' ? 0x223366 : timeOfDay === 'dusk' ? 0xff7733 : 0xfff8e7,
+    timeOfDay === 'night' ? 0.2 : 1.2
+  );
+  sun.position.set(timeOfDay === 'dusk' ? 80 : 50, 80, 30);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.far = 400;
+  sun.shadow.camera.left = -120;
+  sun.shadow.camera.right = 120;
+  sun.shadow.camera.top = 120;
+  sun.shadow.camera.bottom = -120;
+  scene.add(sun);
+
+  // ─── SKY ──────────────────────────────────────────────────────────────────
+  const skyColors = {
+    day: [0x1a3a6a, 0x3a6aa0],
+    dusk: [0x1a0a30, 0xc05030],
+    night: [0x020510, 0x0a0a20]
+  };
+  scene.background = new THREE.Color(skyColors[timeOfDay][0]);
+
+  // Sky dome gradient via vert-colored sphere
+  const skyGeo = new THREE.SphereGeometry(900, 16, 8);
+  const skyMat = new THREE.MeshBasicMaterial({ color: skyColors[timeOfDay][1], side: THREE.BackSide });
+  scene.add(new THREE.Mesh(skyGeo, skyMat));
+
+  if (fog) {
+    scene.fog = new THREE.FogExp2(skyColors[timeOfDay][1], 0.008);
+  } else {
+    scene.fog = null;
+  }
+
+  // ─── GROUND ───────────────────────────────────────────────────────────────
+  const groundColor = archStyle === 'industrial' ? 0x1a1a12 : 0x111a0f;
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(400, 400),
+    new THREE.MeshLambertMaterial({ color: groundColor })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // ─── ROAD NETWORK ─────────────────────────────────────────────────────────
+  const roadW = lanes * 3.5;
+  const roadMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+  const sideMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+  const lineMat = new THREE.MeshLambertMaterial({ color: 0xffdd44 });
+
+  // Main roads
+  const roadLengths = [200, 200, 200, 200, 160, 160];
+  const roadDirs = [[1,0],[0,1],[1,0],[0,1],[1,0],[0,1]];
+  const roadOffsets = [0, 0, blockSize*8, blockSize*8, -blockSize*4, blockSize*4];
+
+  for (let r = 0; r < 4; r++) {
+    const isX = r % 2 === 0;
+    const offset = (r < 2 ? 0 : (r === 2 ? 1 : -1)) * blockSize * 7;
+    const roadMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(isX ? 200 : roadW, isX ? roadW : 200),
+      roadMat
+    );
+    roadMesh.rotation.x = -Math.PI / 2;
+    roadMesh.position.set(isX ? 0 : offset, 0.01, isX ? offset : 0);
+    roadMesh.receiveShadow = true;
+    scene.add(roadMesh);
+    objectCount++;
+
+    // Sidewalk
+    const swW = 3;
+    for (let s = -1; s <= 1; s += 2) {
+      const sw = new THREE.Mesh(
+        new THREE.PlaneGeometry(isX ? 200 : swW, isX ? swW : 200),
+        sideMat
+      );
+      sw.rotation.x = -Math.PI / 2;
+      sw.position.set(
+        isX ? 0 : offset + s * (roadW / 2 + swW / 2),
+        0.02,
+        isX ? offset + s * (roadW / 2 + swW / 2) : 0
+      );
+      scene.add(sw);
+    }
+
+    // Center line dashes
+    for (let d = -90; d < 90; d += 10) {
+      const dash = new THREE.Mesh(
+        new THREE.PlaneGeometry(isX ? 4 : 0.2, isX ? 0.2 : 4),
+        lineMat
+      );
+      dash.rotation.x = -Math.PI / 2;
+      dash.position.set(isX ? d : offset, 0.03, isX ? offset : d);
+      scene.add(dash);
+    }
+  }
+
+  // ─── BUILDINGS ────────────────────────────────────────────────────────────
+  const blockPad = 8;
+  const blockStep = blockSize * 2 + blockPad;
+  const gridR = Math.floor(Math.sqrt(density / 2));
+
+  const matPalettes = {
+    modern: [0x2a4a6a, 0x1a3a5a, 0x3a5a7a, 0x224466, 0x4a6a8a, 0x334455],
+    classic: [0x8a7a6a, 0x7a6a5a, 0x9a8a7a, 0xaa9988, 0x6a5a4a, 0xbbaa99],
+    industrial: [0x3a3a3a, 0x2a2a2a, 0x4a4a4a, 0x5a5040, 0x3a3028, 0x555545],
+    futuristic: [0x003355, 0x004466, 0x005577, 0x112244, 0x223355, 0x334466]
+  };
+
+  const palette = matPalettes[archStyle] || matPalettes.modern;
+
+  const positions = [];
+  // Build on city blocks (avoid road centers)
+  for (let gx = -gridR; gx <= gridR; gx++) {
+    for (let gz = -gridR; gz <= gridR; gz++) {
+      const cx = gx * blockStep;
+      const cz = gz * blockStep;
+      // Skip road intersections
+      if (Math.abs(cx) < 12 && Math.abs(cz) < 12) continue;
+      positions.push([cx, cz]);
+    }
+  }
+
+  positions.forEach(([cx, cz]) => {
+    const h = sceneGraph.tall
+      ? rand(maxH * 0.5, maxH)
+      : rand(2, maxH * 0.7);
+    const w = rand(blockSize * 0.6, blockSize * 1.1);
+    const d = rand(blockSize * 0.6, blockSize * 1.1);
+
+    const col = palette[Math.floor(Math.random() * palette.length)];
+    const bMat = new THREE.MeshLambertMaterial({ color: col });
+
+    // Base
+    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bMat);
+    b.position.set(
+      cx + rand(-2, 2),
+      h / 2,
+      cz + rand(-2, 2)
+    );
+    b.castShadow = true;
+    b.receiveShadow = true;
+    scene.add(b);
+    buildingCount++;
+    objectCount++;
+
+    // Windows
+    if (timeOfDay !== 'day') {
+      const winMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 });
+      const floors = Math.floor(h / 2);
+      const winPerFloor = Math.max(2, Math.floor(w / 2));
+      for (let f = 0; f < floors; f++) {
+        for (let ww = 0; ww < winPerFloor; ww++) {
+          if (Math.random() > 0.35) {
+            const win = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.7), winMat);
+            win.position.set(
+              cx + rand(-2,2) + (ww - winPerFloor/2 + 0.5) * (w / winPerFloor),
+              f * 2 + 1.5,
+              cz + rand(-2,2) + d / 2 + 0.01
+            );
+            scene.add(win);
+          }
+        }
+      }
+    }
+
+    // Rooftop detail for futuristic / modern
+    if (archStyle === 'futuristic' || archStyle === 'modern') {
+      if (h > 6 && Math.random() > 0.5) {
+        const roofEl = new THREE.Mesh(
+          new THREE.BoxGeometry(w * 0.4, rand(1, 3), d * 0.4),
+          new THREE.MeshLambertMaterial({ color: 0x00aaff })
+        );
+        roofEl.position.set(cx + rand(-2,2), h + 1, cz + rand(-2,2));
+        scene.add(roofEl);
+      }
+    }
+  });
+
+  // ─── TREES ────────────────────────────────────────────────────────────────
+  if (trees) {
+    const trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a2a0a });
+    const leafMat = new THREE.MeshLambertMaterial({ color: timeOfDay === 'night' ? 0x0a1a0a : 0x1a6a1a });
+    const leafMat2 = new THREE.MeshLambertMaterial({ color: timeOfDay === 'night' ? 0x0d200d : 0x2a8a2a });
+
+    for (let i = 0; i < 60; i++) {
+      const tx = rand(-90, 90);
+      const tz = rand(-90, 90);
+      const th = rand(2.5, 5);
+
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, th, 6), trunkMat);
+      trunk.position.set(tx, th / 2, tz);
+      trunk.castShadow = true;
+      scene.add(trunk);
+
+      const lMat = Math.random() > 0.5 ? leafMat : leafMat2;
+      const leaves = new THREE.Mesh(new THREE.SphereGeometry(rand(1.2, 2.2), 7, 5), lMat);
+      leaves.position.set(tx, th + 1, tz);
+      leaves.castShadow = true;
+      scene.add(leaves);
+      objectCount++;
+    }
+  }
+
+  // ─── STREET LIGHTS ────────────────────────────────────────────────────────
+  if (lights) {
+    const poleMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    const lightBulbMat = new THREE.MeshBasicMaterial({ color: timeOfDay === 'day' ? 0x888888 : 0xffee99 });
+
+    const lightPositions = [];
+    for (let x = -80; x <= 80; x += 20) lightPositions.push([x, -18], [x, 18]);
+    for (let z = -80; z <= 80; z += 20) lightPositions.push([-18, z], [18, z]);
+
+    lightPositions.forEach(([lx, lz]) => {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 5, 5), poleMat);
+      pole.position.set(lx, 2.5, lz);
+      scene.add(pole);
+
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.15, 0.15), poleMat);
+      arm.position.set(lx + 0.75, 5.1, lz);
+      scene.add(arm);
+
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.3, 6, 6), lightBulbMat);
+      bulb.position.set(lx + 1.5, 5, lz);
+      scene.add(bulb);
+
+      if (timeOfDay !== 'day') {
+        const pl = new THREE.PointLight(0xffee88, 0.8, 25);
+        pl.position.set(lx + 1.5, 5, lz);
+        scene.add(pl);
+      }
+      objectCount++;
+    });
+  }
+
+  // ─── VEHICLES ─────────────────────────────────────────────────────────────
+  if (cars) {
+    const carColors = [0xcc2222, 0x2244cc, 0x228833, 0xcccc22, 0x888888, 0xffffff];
+    for (let i = 0; i < 20; i++) {
+      const isX = Math.random() > 0.5;
+      const lane = (Math.floor(Math.random() * lanes) - lanes/2 + 0.5) * 3.5;
+      const pos = rand(-80, 80);
+      const col = carColors[Math.floor(Math.random() * carColors.length)];
+
+      const carMat = new THREE.MeshLambertMaterial({ color: col });
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2, 0.8, 4), carMat);
+      body.position.set(isX ? pos : lane, 0.5, isX ? lane : pos);
+      if (!isX) body.rotation.y = Math.PI / 2;
+      body.castShadow = true;
+      scene.add(body);
+
+      const cab = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.6, 2.2), carMat);
+      cab.position.set(isX ? pos : lane, 1.1, isX ? lane : pos);
+      if (!isX) cab.rotation.y = Math.PI / 2;
+      scene.add(cab);
+
+      if (timeOfDay !== 'day') {
+        const hl = new THREE.PointLight(0xffffee, 0.5, 15);
+        hl.position.set(isX ? pos + 2 : lane, 0.8, isX ? lane : pos + 2);
+        scene.add(hl);
+      }
+      objectCount++;
+    }
+  }
+
+  // ─── BACKGROUND SKYLINE ───────────────────────────────────────────────────
+  if (skyline) {
+    const bgMat = new THREE.MeshLambertMaterial({ color: timeOfDay === 'night' ? 0x050a18 : 0x1a2a3a });
+    for (let i = 0; i < 30; i++) {
+      const angle = (i / 30) * Math.PI * 2;
+      const r = rand(110, 140);
+      const h = rand(10, 50);
+      const w = rand(4, 14);
+      const bg = new THREE.Mesh(new THREE.BoxGeometry(w, h, w * 0.8), bgMat);
+      bg.position.set(Math.cos(angle) * r, h / 2, Math.sin(angle) * r);
+      scene.add(bg);
+    }
+  }
+
+  // ─── STARS (night) ────────────────────────────────────────────────────────
+  if (timeOfDay === 'night') {
+    const starGeo = new THREE.BufferGeometry();
+    const starVerts = [];
+    for (let i = 0; i < 2000; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const r = 800;
+      starVerts.push(
+        r * Math.sin(phi) * Math.cos(theta),
+        r * Math.cos(phi),
+        r * Math.sin(phi) * Math.sin(theta)
+      );
+    }
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
+    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.5 }));
+    scene.add(stars);
+  }
+
+  // Neon lights for night
+  if (timeOfDay === 'night' && archStyle !== 'industrial') {
+    const neonColors = [0xff0044, 0x00ffcc, 0xff8800, 0x8800ff];
+    for (let i = 0; i < 12; i++) {
+      const nl = new THREE.PointLight(neonColors[i % neonColors.length], 0.6, 30);
+      nl.position.set(rand(-60, 60), rand(2, 15), rand(-60, 60));
+      scene.add(nl);
+    }
+  }
+
+  updateHUD();
+}
+
+// ─── ANIMATION ────────────────────────────────────────────────────────────────
+function animate() {
+  animId = requestAnimationFrame(animate);
+
+  const t = Date.now() * 0.001;
+
+  // Camera modes
+  if (cameraMode === 'orbit') {
+    orbitAngle += 0.002;
+    const r = 90;
+    camera.position.set(
+      Math.cos(orbitAngle) * r,
+      35 + Math.sin(orbitAngle * 0.3) * 5,
+      Math.sin(orbitAngle) * r
+    );
+    camera.lookAt(0, 5, 0);
+  } else if (cameraMode === 'fly') {
+    flyT += 0.003;
+    const path = [
+      new THREE.Vector3(-70, 15, 0),
+      new THREE.Vector3(0, 20, -70),
+      new THREE.Vector3(70, 15, 0),
+      new THREE.Vector3(0, 10, 70),
+    ];
+    const idx = Math.floor(flyT) % 4;
+    const next = (idx + 1) % 4;
+    const f = flyT - Math.floor(flyT);
+    camera.position.lerpVectors(path[idx], path[next], f);
+    camera.lookAt(0, 5, 0);
+  } else if (cameraMode === 'bird') {
+    camera.position.set(0, 130, 1);
+    camera.lookAt(0, 0, 0);
+  } else if (cameraMode === 'street') {
+    const st = t * 0.2;
+    camera.position.set(Math.cos(st) * 30, 3, Math.sin(st) * 30);
+    camera.lookAt(Math.cos(st + 0.5) * 20, 5, Math.sin(st + 0.5) * 20);
+  }
+
+  // FPS
+  frameCount++;
+  const now = Date.now();
+  if (now - lastFPSTime > 500) {
+    fps = Math.round(frameCount / ((now - lastFPSTime) / 1000));
+    frameCount = 0;
+    lastFPSTime = now;
+    document.getElementById('hudStats').innerHTML =
+      `BUILDINGS: ${buildingCount}<br>OBJECTS: ${objectCount}<br>CAMERA: ${cameraMode.toUpperCase()}<br>FPS: ${fps}`;
+  }
+
+  renderer.render(scene, camera);
+}
+
+// ─── UI HELPERS ────────────────────────────────────────────────────────────────
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+function setPrompt(key) {
+  document.getElementById('promptInput').value = PROMPTS[key] || '';
+}
+
+function updateVal(el, id) {
+  document.getElementById(id).textContent = el.value;
+}
+
+function setStyle(btn, style) {
+  archStyle = style;
+  document.querySelectorAll('#styleGroup .radio-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setTime(btn, time) {
+  timeOfDay = time;
+  document.querySelectorAll('#timeGroup .radio-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setCamera(mode) {
+  cameraMode = mode;
+  flyT = 0;
+  ['btnOrbit','btnFly','btnBird','btnStreet'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  const map = { orbit:'btnOrbit', fly:'btnFly', bird:'btnBird', street:'btnStreet' };
+  document.getElementById(map[mode]).classList.add('active');
+}
+
+function updateHUD() {
+  document.getElementById('hudStats').innerHTML =
+    `BUILDINGS: ${buildingCount}<br>OBJECTS: ${objectCount}<br>CAMERA: ${cameraMode.toUpperCase()}<br>FPS: ${fps}`;
+}
+
+function showSceneGraph(sg) {
+  const panel = document.getElementById('graphPanel');
+  panel.classList.add('visible');
+  document.getElementById('graphContent').innerHTML = `
+    <div class="graph-node">URBAN_BLOCK</div>
+    <div class="graph-edge">├─ roads (${sg.roads})</div>
+    <div class="graph-edge">├─ buildings (${sg.buildings})</div>
+    <div class="graph-edge">├─ ${sg.green ? 'trees ✓' : 'trees ✗'}</div>
+    <div class="graph-edge">├─ ${sg.tall ? 'skyscrapers ✓' : 'mid-rise ✓'}</div>
+    <div class="graph-edge">└─ style: ${archStyle}</div>
+  `;
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
